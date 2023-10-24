@@ -70,7 +70,7 @@ for i in (range(0, len(pointing_coords))):
 
     print('Progress: ', "{:.1f}".format((i/len(pointing_coords))*100), '%')
 
-    if (i % save_increments == 0):
+    if (i % save_increments == 0) or (i + save_increments > len(pointing_coords)):
         part += 1 
         # Concatenate the individual data frames into a single total data frame
         total_dataframe = pd.concat(data_frames, ignore_index=True)
