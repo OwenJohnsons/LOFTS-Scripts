@@ -6,19 +6,18 @@ import argparse
 import astropy.units as u
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz
 
-# parser = argparse.ArgumentParser(description='Calculate LST for a given date and time')
-# parser.add_argument('date', type=str, help='Date in the format YYYY-MM-DD:HH:MM', required=True)
-# parser.add_argument('longitude', type=float, help='Longitude in degrees. Default I-LOFAR.', default=-7.9219)
-# parser.add_argument('obs_window', type=int, help='Observation window in hours.', required=True)
-# args = parser.parse_args()
-# date = args.date; longitude = args.longitude; obs_window = args.obs_window
-
+parser = argparse.ArgumentParser(description='Calculate LST for a given date and time')
+parser.add_argument('date', type=str, help='Date in the format YYYY-MM-DD:HH:MM', required=True)
+parser.add_argument('longitude', type=float, help='Longitude in degrees. Default I-LOFAR.', default=-7.9219)
+parser.add_argument('obs_window', type=int, help='Observation window in hours.', required=True)
+args = parser.parse_args()
+date = args.date; longitude = args.longitude; obs_window = args.obs_window
 
 # strip the date and time
-# date_time = datetime.datetime.strptime(date, '%Y-%m-%d:%H:%M')
-
-date = '2023-11-07:07:00'
 date_time = datetime.datetime.strptime(date, '%Y-%m-%d:%H:%M')
+
+# date = '2023-12-04:07:00'
+# date_time = datetime.datetime.strptime(date, '%Y-%m-%d:%H:%M')
 longitude = -7.9219
 obs_window = 28
 
@@ -80,6 +79,8 @@ names, ra_list, dec_list, src_lines = read_src('SRC_refs.txt')
 # - Convert Coordinates to SkyCoord
 coords = SkyCoord(ra=ra_list, dec=dec_list, unit=(u.rad, u.rad))
 ra_hours = coords.ra.hour
+birr_location = EarthLocation(lat=53.41291*u.deg, lon=-7.9219*u.deg, height=12*u.m)
+observing_time = date_time
 
 time_now = datetime.datetime.utcnow() 
 hours, minutes, seconds = calculate_lst(longitude, time_now)
@@ -88,17 +89,24 @@ print('-------------------')
 
 for i in range(2*obs_window):
     hours, minutes, seconds = calculate_lst(longitude, date_time + datetime.timedelta(minutes=i*30))
-    # --- Find Closest Matching RA --- 
-    idx = find_nearest(hours, ra_hours)
+    # --- Find Closest Matching Zen Sep --- 
+    iteration_time = date_time + datetime.timedelta(minutes=i*30)
+    zenith_seperation = 90 - coords.transform_to(AltAz(obstime=iteration_time, location=birr_location)).alt.degree
+    min_idx = zenith_seperation.argmin()
 
-    print(f"{date_time + datetime.timedelta(minutes=i*30)} | (LST): {hours:02d}:{minutes:02d}:{seconds:02d} | (Closest Trgt) {src_lines[idx][0:-1]}")
-
-print('-------------------')
+    print(f"{date_time + datetime.timedelta(minutes=i*30)} | (LST): {hours:02d}:{minutes:02d}:{seconds:02d} | (Closest Trgt) {src_lines[min_idx][0:-1]} | (Zenith Seperation) {zenith_seperation[min_idx]:.2f} deg")
+#%%
+print('-------------------\n')
 for i in range(2*obs_window):
-    hours, minutes, seconds = calculate_lst(longitude, date_time + datetime.timedelta(minutes=i*30))
-    # --- Find matches within an hour of LST ---
-    idx = np.where(np.abs(np.array(ra_hours) - hours) < 2)[0]
-    print(f"--- {date_time + datetime.timedelta(minutes=i*30)} ---")
+    # --- Find top seperation matches of LST ---
+    iteration_time = date_time + datetime.timedelta(minutes=i*30)
+    iteration_time = date_time + datetime.timedelta(minutes=i*30)
+    zenith_seperation = 90 - coords.transform_to(AltAz(obstime=iteration_time, location=birr_location)).alt.degree
+    # sort array by decreasing zenith seperation
+    idx = np.argsort(zenith_seperation)[0:5]
+    
+    print(f"--- {iteration_time} ---")
     for j in idx:
-        print(f"{src_lines[j][0:-1]}")
+        print(f"{src_lines[j][0:-1]} | (Zenith Seperation) {zenith_seperation[j]:.2f} deg")
+    print('')
 # %%
