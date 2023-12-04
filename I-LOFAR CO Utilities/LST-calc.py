@@ -9,17 +9,13 @@ from astropy.coordinates import SkyCoord, EarthLocation, AltAz
 parser = argparse.ArgumentParser(description='Calculate LST for a given date and time')
 parser.add_argument('date', type=str, help='Date in the format YYYY-MM-DD:HH:MM', required=True)
 parser.add_argument('longitude', type=float, help='Longitude in degrees. Default I-LOFAR.', default=-7.9219)
-parser.add_argument('obs_window', type=int, help='Observation window in hours.', required=True)
+parser.add_argument('obs_window', type=int, help='Observation window in hours.', default=28)
 args = parser.parse_args()
+obs_window = args.obs_window
 date = args.date; longitude = args.longitude; obs_window = args.obs_window
 
 # strip the date and time
 date_time = datetime.datetime.strptime(date, '%Y-%m-%d:%H:%M')
-
-# date = '2023-12-04:07:00'
-# date_time = datetime.datetime.strptime(date, '%Y-%m-%d:%H:%M')
-longitude = -7.9219
-obs_window = 28
 
 # Constants
 SOLAR_SIDEREAL_RATIO = 1.00273790935  # Ratio of solar day to sidereal day (approximately)
@@ -79,7 +75,7 @@ names, ra_list, dec_list, src_lines = read_src('SRC_refs.txt')
 # - Convert Coordinates to SkyCoord
 coords = SkyCoord(ra=ra_list, dec=dec_list, unit=(u.rad, u.rad))
 ra_hours = coords.ra.hour
-birr_location = EarthLocation(lat=53.41291*u.deg, lon=-7.9219*u.deg, height=12*u.m)
+birr_location = EarthLocation(lat=53.41291*u.deg, lon=longitude*u.deg, height=12*u.m)
 observing_time = date_time
 
 time_now = datetime.datetime.utcnow() 
