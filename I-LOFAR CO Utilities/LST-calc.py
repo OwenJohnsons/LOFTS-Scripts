@@ -8,9 +8,9 @@ from astropy.coordinates import SkyCoord, EarthLocation, AltAz, get_sun
 from astropy.time import Time
 
 parser = argparse.ArgumentParser(description='Calculate LST for a given date and time')
-parser.add_argument('date', nargs='?', type=str, help='Date in the format YYYY-MM-DD:HH:MM', default=datetime.datetime.utcnow().strftime('%Y-%m-%d:%H:%M'))
-parser.add_argument('longitude', nargs='?', type=float, help='Longitude in degrees. Default I-LOFAR.', default=-7.9219)
-parser.add_argument('obs_window', nargs='?', type=int, help='Observation window in hours.', default=28)
+parser.add_argument('--date', '-d', nargs='?', type=str, help='Date in the format YYYY-MM-DD:HH:MM', default=datetime.datetime.utcnow().strftime('%Y-%m-%d:%H:%M'))
+parser.add_argument('--longitude', '-l', nargs='?', type=float, help='Longitude in degrees. Default I-LOFAR.', default=-7.9219)
+parser.add_argument('--obs_window', '-obs_w', nargs='?', type=int, help='Observation window in hours.', default=28)
 args = parser.parse_args()
 obs_window = args.obs_window
 date = args.date; longitude = args.longitude; obs_window = args.obs_window
