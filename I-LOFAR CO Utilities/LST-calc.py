@@ -4,12 +4,13 @@ import math
 import numpy as np 
 import argparse 
 import astropy.units as u
-from astropy.coordinates import SkyCoord, EarthLocation, AltAz
+from astropy.coordinates import SkyCoord, EarthLocation, AltAz, get_sun
+from astropy.time import Time
 
 parser = argparse.ArgumentParser(description='Calculate LST for a given date and time')
-parser.add_argument('date', type=str, help='Date in the format YYYY-MM-DD:HH:MM', required=True)
-parser.add_argument('longitude', type=float, help='Longitude in degrees. Default I-LOFAR.', default=-7.9219)
-parser.add_argument('obs_window', type=int, help='Observation window in hours.', default=28)
+parser.add_argument('date', nargs='?', type=str, help='Date in the format YYYY-MM-DD:HH:MM', default=datetime.datetime.utcnow().strftime('%Y-%m-%d:%H:%M'))
+parser.add_argument('longitude', nargs='?', type=float, help='Longitude in degrees. Default I-LOFAR.', default=-7.9219)
+parser.add_argument('obs_window', nargs='?', type=int, help='Observation window in hours.', default=28)
 args = parser.parse_args()
 obs_window = args.obs_window
 date = args.date; longitude = args.longitude; obs_window = args.obs_window
@@ -19,6 +20,8 @@ date_time = datetime.datetime.strptime(date, '%Y-%m-%d:%H:%M')
 
 # Constants
 SOLAR_SIDEREAL_RATIO = 1.00273790935  # Ratio of solar day to sidereal day (approximately)
+
+# --- Solar Ephemeris --
 
 # Function to calculate Local Sidereal Time (LST)
 def calculate_lst(longitude, date_time):
@@ -82,7 +85,8 @@ time_now = datetime.datetime.utcnow()
 hours, minutes, seconds = calculate_lst(longitude, time_now)
 print(f"Current Local Sidereal Time at I-LOFAR (LST): {hours:02d}:{minutes:02d}:{seconds:02d}")
 print('-------------------')
-
+print('BEST MATCH FOR EACH TIME')
+print('-------------------\n')
 for i in range(2*obs_window):
     hours, minutes, seconds = calculate_lst(longitude, date_time + datetime.timedelta(minutes=i*30))
     # --- Find Closest Matching Zen Sep --- 
@@ -92,17 +96,26 @@ for i in range(2*obs_window):
 
     print(f"{date_time + datetime.timedelta(minutes=i*30)} | (LST): {hours:02d}:{minutes:02d}:{seconds:02d} | (Closest Trgt) {src_lines[min_idx][0:-1]} | (Zenith Seperation) {zenith_seperation[min_idx]:.2f} deg")
 #%%
+print('-------------------')
+print('TOP 5 CLOSEST ZENITH SEPERATION MATCHES')
 print('-------------------\n')
 for i in range(2*obs_window):
     # --- Find top seperation matches of LST ---
-    iteration_time = date_time + datetime.timedelta(minutes=i*30)
     iteration_time = date_time + datetime.timedelta(minutes=i*30)
     zenith_seperation = 90 - coords.transform_to(AltAz(obstime=iteration_time, location=birr_location)).alt.degree
     # sort array by decreasing zenith seperation
     idx = np.argsort(zenith_seperation)[0:5]
     
-    print(f"--- {iteration_time} ---")
+    print(f"\n{iteration_time} ---")
     for j in idx:
         print(f"{src_lines[j][0:-1]} | (Zenith Seperation) {zenith_seperation[j]:.2f} deg")
-    print('')
-# %%
+ #%%
+print('\n-------------------')
+print('SUN POSITIONS')
+print('-------------------\n')
+for i in range(2*obs_window):
+    iteration_time = date_time + datetime.timedelta(minutes=i*30)
+    sun_coord = get_sun(Time(iteration_time.strftime('%Y-%m-%dT%H:%M:%S')))
+    sun_altaz = sun_coord.transform_to(AltAz(obstime=iteration_time, location=birr_location))
+    zenith_seperation = 90 - sun_altaz.alt.degree
+    print(f"{iteration_time} | (Sun Altitude) {sun_altaz.alt.degree:.2f} deg | (Zenith Seperation) {zenith_seperation:.2f} deg")
