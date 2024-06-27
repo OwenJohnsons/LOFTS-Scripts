@@ -4,7 +4,7 @@ Code Purpose: To query the Gaia DR3 database for targets within provided Zenith 
 Author: Owen A. Johnson
 Date: 2023-18-10 
 '''
-
+import argparse
 import pandas as pd 
 import numpy as np 
 import matplotlib as plt
@@ -15,15 +15,21 @@ from astropy import units as u
 from astroquery.gaia import Gaia
 import time 
 
+# --- Arguments --- 
+parser = argparse.ArgumentParser(description='Query Gaia DR3 for targets within beam pointings of radio telescope observations.')
+parser.add_argument('--radius', type=float, default=2.59/2, help='Radius of the beam in degrees. Deafult FWHM of a LOFAR internatonal station at 150 MHz.')
+parser.add_argument('--input', type=str, required=True, help='Input file containing the RA and DEC of the zenith pointings. In the form of RA, DEC. Delimited by a comma.')
+args = parser.parse_args()
+
 elasp_time = time.time()
 
-# --- Setup Parameters --- 
+# --- Setup Parameters ---  
 Gaia.MAIN_GAIA_TABLE = "gaiadr3.gaia_source"  # Select Data Release 3
 Gaia.ROW_LIMIT = -1  # No limit on number of rows returned
-save_increments = 75 # Save data every 10 pointings
+save_increments = 75
 
 # --- Loading LOFAR beam pointings ---
-pointings_ra, pointings_dec, times = np.loadtxt('zenith_ra_dec.txt', unpack=True, delimiter=',', skiprows=1)
+pointings_ra, pointings_dec, times = np.loadtxt(args.input, unpack=True, delimiter=',', skiprows=1)
 pointings_vec = np.vstack((pointings_ra, pointings_dec)).T
 pointing_coords = SkyCoord(ra=pointings_vec[:,0]*u.degree, dec=pointings_vec[:,1]*u.degree)
 print('Number of pointings: ', len(pointings_vec))
