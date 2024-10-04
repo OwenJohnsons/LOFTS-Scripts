@@ -2,7 +2,9 @@
 
 ## Overview
 
-This contains the pipeline scripts used on the Breakthrough Listen backeneds of IE613 and SE607 in the generation and analysis for the Low Frequency Technosignature, FRB and Pulsar Survey. 
+This contains the pipeline scripts used on the Breakthrough Listen backeneds of IE613 and SE607 in the generation and analysis for the Low Frequency Technosignature, FRB and Pulsar Survey. An overview of the pipeline is shown below.
+
+![LOFTS Pipeline](LOFTS-Pipeline.png)
 
 ## Filterbank Generation 
 
@@ -31,3 +33,5 @@ Also `rawspec-calculator.py` can be used to calculate the frequency and time res
 | **High Frequency Product** | 65536     | 2      | 3.33 Hz                  | 0.671 s        | **Technosignature Searching**: Detecting drifting narrowband signals.    |
 | **Mid Frequency Product**  | 64        | 3072   | 3.41 kHz                 | 1.006 s        | **Broadband Emission Studies**: Observing wideband emissions from solar flares, planetary radio emissions, or periodic spectral signals.         |
 | **Low Frequency Product**  | 8         | 16     | 27.31 kHz                | 0.655 ms      | **Transient Detection**: Suitable for detecting FRBs and RRATs. |
+
+Finally using the `filterbank-gen-lofts.sh` script is used as follows: `bash filterbank-gen-lofts.sh /datax/Projects/proj21/sess_sid20240723T200200_SE607`. 
