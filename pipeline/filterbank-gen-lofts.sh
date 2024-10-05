@@ -13,7 +13,6 @@ echo "Number of scan folders found : $(echo $header_folders | wc -w)"
 for folder in $header_folders; do 
     # find file with .h extension
     h_file=$(find $folder -name "*.h")
-    # echo "Header file found : $h_file"
 
     if grep -q "IE613" $h_file; then 
         station_prefix="IE613_16130"
@@ -41,20 +40,23 @@ for folder in $header_folders; do
     # check if there are any .raw files in the output directory
     raw_files=$(find $output_dir -name "*.raw")
     if [ ! -z "$raw_files" ]; then 
-        echo "Raw files already exist in $output_dir. Skipping..."
-        continue
+        echo "Raw files already exist in $output_dir. Skipping lofar_udp_extractor..."
+    else
+        # Run lofar_udp_extractor inside the Singularity container
+        singularity exec --bind /datax,/datax2 /datax2/obs/singularity/lofar-upm_latest.simg \
+            lofar_udp_extractor -p 30 -M GUPPI \
+            -I $h_file \
+            -S 1 -b 0,412 \
+            -i $zst_scan_path \
+            -o "$output_dir/${target}.[[iter]].raw" \
+            -m 4096
     fi
 
-    # Run lofar_udp_extractor inside the Singularity container
-    singularity exec --bind /datax,/datax2 /datax2/obs/singularity/lofar-upm_latest.simg \
-        lofar_udp_extractor -p 30 -M GUPPI \
-        -I $h_file \
-        -S 1 -b 0,412 \
-        -i $zst_scan_path \
-        -o "$output_dir/${target}_[[iter]].raw" \
-        -m 4096
-done 
-
-echo ".raw files generated in $raw_data_path"
-
-# Running rawspec 
+    # Check if 0000.fil, 0001.fil, and 0002.fil files exist in the output directory
+    if [ -f "$output_dir/${target}.rawspec.0000.fil" ] && [ -f "$output_dir/${target}.rawspec.0001.fil" ] && [ -f "$output_dir/${target}.rawspec.0002.fil" ]; then
+        echo "Filterbank files 0000.fil, 0001.fil, and 0002.fil exist in $output_dir. Skipping rawspec..."
+    else
+        # Run rawspec if the required .fil files do not exist
+        rawspec -f 65536,8,64 -t 54,16,3072 -p 1,1,4 $output_dir/${target}
+    fi
+done
