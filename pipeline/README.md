@@ -28,10 +28,11 @@ For custom data products, the following expressions can be used to determined va
 
 Also `rawspec-calculator.py` can be used to calculate the frequency and time resolution for a given `-f` and `-t` value. 
 
-| **Product**              | **-f**     | **-t** | **Frequency Resolution** | **Time Resolution** | **Science Case**                                                         |
-|--------------------------|------------|--------|--------------------------|---------------------|-------------------------------------------------------------------------|
-| **High Frequency Product** | 65536     | 54      | 3.33 Hz                  | 18.119 s        | **Technosignature Searching**: Detecting drifting narrowband signals.    |
-| **Mid Frequency Product**  | 64        | 3072   | 3.41 kHz                 | 1.006 s        | **Broadband Emission Studies**: Observing wideband emissions from solar flares, planetary radio emissions, or periodic spectral signals.         |
-| **Low Frequency Product**  | 8         | 16     | 27.31 kHz                | 0.655 ms      | **Transient Detection**: Suitable for detecting FRBs and RRATs. |
+| **Product**              | **-f**     | **-t** | **Frequency Resolution** | **Time Resolution** | **File Suffix**  | **Polarisation** | **Science Case**                                                         |
+|--------------------------|------------|--------|--------------------------|---------------------|------------------|------------------|-------------------------------------------------------------------------|
+| **High Frequency Product** | 65536     | 54      | 3.33 Hz                  | 18.119 s            | 0000.fil           | I              | **Technosignature Searching**: Detecting drifting narrowband signals.    |
+| **Mid Frequency Product**  | 64        | 3072    | 3.41 kHz                 | 1.006 s             | 0002.fil             | I, Q, U, V              | **Broadband Emission Studies**: Observing wideband emissions from solar flares, planetary radio emissions, or periodic spectral signals. |
+| **Low Frequency Product**  | 8         | 16      | 27.31 kHz                | 0.655 ms            | 0001.fil              | I            | **Transient Detection**: Suitable for detecting FRBs and RRATs.          |
+
 
 Finally using the `filterbank-gen-lofts.sh` script is used as follows: `bash filterbank-gen-lofts.sh /datax/Projects/proj21/sess_sid20240723T200200_SE607`. 
