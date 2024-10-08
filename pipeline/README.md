@@ -4,7 +4,7 @@
 
 This contains the pipeline scripts used on the Breakthrough Listen backeneds of IE613 and SE607 in the generation and analysis for the Low Frequency Technosignature, FRB and Pulsar Survey. An overview of the pipeline is shown below.
 
-![LOFTS Pipeline](LOFTS-Pipeline.jpg)
+![LOFTS Pipeline](LOFTS-filesystem.jpg)
 
 ## Filterbank Generation 
 
@@ -35,4 +35,8 @@ Also `rawspec-calculator.py` can be used to calculate the frequency and time res
 | **Low Frequency Product**  | 8         | 16      | 27.31 kHz                | 0.655 ms            | 0001.fil              | I            | **Transient Detection**: Suitable for detecting FRBs and RRATs.          |
 
 
-Finally using the `filterbank-gen-lofts.sh` script is used as follows: `bash filterbank-gen-lofts.sh /datax/Projects/proj21/sess_sid20240723T200200_SE607`. 
+Finally using the `filterbank-gen-lofts.sh`. The script is simple to run and used as follows: `bash filterbank-gen-lofts.sh /datax/Projects/proj21/sess_sid20240723T200200_SE607`. 
+
+### Filterbank Cleaning 
+
+The filterbanks generated generate `.raw` files that are substaintial in size. In addition to this voltages (`.zst`) are also large. The `voltage-cleaner.sh` script checks that the filterbanks for each target in a rawfile path has it accompanying filterbanks. It then checks the size of the filterbanks to infer if the generation was successful (it is still recommended to eye file sizes before running this script). If both conditions are met the script will remove the `.raw` and `.zst` files. The script is used in the same manner as the filterbank generation script, an example usage: `bash voltage-cleaner.sh /datax/Projects/proj21/sess_sid20240723T200200_SE607`.
