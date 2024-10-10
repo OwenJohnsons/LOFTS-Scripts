@@ -6,6 +6,13 @@
 path=$1
 raw_data_path="/datax2/projects/LOFTS/raw"
 
+# LOGGING 
+time=$(date +"%H:%M")
+log_name=$(echo $path | awk -F'/' '{print $NF}')
+log_file="/datax2/projects/LOFTS/logs/filgen/${log_name}_${time}.out"
+error_file="/datax2/projects/LOFTS/logs/filgen/${log_name}_${time}.err"
+
+
 # Folders that begin with scan_
 header_folders=$(find $path -type d -name "scan_*")
 echo "Number of scan folders found : $(echo $header_folders | wc -w)"

@@ -68,11 +68,26 @@ for folder in $header_folders; do
             zst_files=$(find $path/scan_${target} -name "*.zst")
             if [ ! -z "$zst_files" ]; then 
                 echo "ZST files exist in $path/scan_${target}. Cleaning zst files..."
+                echo $zst_scan_path
                 # Remove .zst files
                 find $path/scan_${target} -name "*.zst" -print0 | xargs -0 rm
             else
                 echo "No .zst files found in $path/scan_${target}."
             fi
+            # cycle through lane0, lane1, lane2, lane3. 
+            for port in {0..3}; do 
+                # Check if there are any .zst files in the source directory
+                # replace [[port]] with $port
+                lane_path=$(echo "$zst_scan_path" | sed "s/[[port]]/$port/g")
+                zst_files=$(find $lane_path -name "*.zst")
+                if [ ! -z "$zst_files" ]; then 
+                    echo "ZST files exist in lane${port}. Cleaning zst files..."
+                    # Remove .zst files
+                    find $lane_path -name "*.zst" -print0 | xargs -0 rm
+                else
+                    echo "No .zst files found in lane${port}."
+                fi
+            done
 
         else
             echo "Filterbank files exist in $output_dir but are smaller than expected manual check neeeded. Skipping voltage_cleaner..."
