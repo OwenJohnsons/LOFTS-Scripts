@@ -24,33 +24,33 @@ for folder in $folders; do
         mkdir -p $output_dir
     fi
 
+    echo "Output directory: $output_dir"
+
     # check if there are any .fil files in the output directory
     fil_files=$(find $output_dir -name "*.fil")
     if [ ! -z "$fil_files" ]; then 
         echo "Filterbank files already exist in $output_dir. Skipping lofar_udp_extractor..."
     else
-        voltages=$(find $folder -name "*.zst")
+        voltages=$(find $folder -name "*16130*.zst")
         
-        # Check if there are four .zst voltages 
-        if [ $(echo $voltages | wc -w) -ne 4 ]; then 
-            echo "There are not four .zst files in $folder. Skipping lofar_udp_extractor..."
-            continue
-        fi
 
-        scan_path=$(echo ${voltages[0]} | sed 's/udp_16131/udp_1613[[port]]/')
-        echo "Scan path : $scan_path"
+        zst_scan_path=$(sed 's/udp_16130/udp_1613[[port]]/' <<< "${voltages[0]}")
+        echo "Scan path: $zst_scan_path"
 
-         raw_files=$(find $output_dir -name "*.raw")
+        metadata=${folder}/metadata.h
+
+        raw_files=$(find $output_dir -name "*.raw")
         if [ ! -z "$raw_files" ]; then 
             echo "Raw files already exist in $output_dir. Skipping lofar_udp_extractor..."
         else
             # Run lofar_udp_extractor inside the Singularity container
-            singularity exec --bind /datax,/datax2 /datax2/obs/singularity/lofar-upm_latest.simg \
+            echo "Running lofar_udp_extractor..."
+            singularity exec --bind /mnt/ucc3_data1,/mnt/ucc3_data2 /home/obs/LOFTS-Scripts/singularity-image/lofar-upm_latest.simg \
                 lofar_udp_extractor -p 30 -M GUPPI \
                 -S 1 -b 0,412 \
-                -i $zst_scan_path \
-                -o "$output_dir/${target}.[[iter]].raw" \
-                -m 4096
+                -i ${zst_scan_path} \
+                -o "${output_dir}/${target}.[[iter]].raw" \
+                -m 4096 -I "${metadata}" 
         fi
     fi
 
@@ -61,4 +61,11 @@ for folder in $folders; do
         # Run rawspec if the required .fil files do not exist
         rawspec -f 65536,8,64 -t 54,16,3072 -p 1,1,4 $output_dir/${target}
     fi
+
+    # clean .raw files after filterbank generation
+    if [ -f "$output_dir/${target}.rawspec.0000.fil" ] && [ -f "$output_dir/${target}.rawspec.0001.fil" ] && [ -f "$output_dir/${target}.rawspec.0002.fil" ]; then
+        echo "Cleaning raw files..."
+        rm -f $output_dir/${target}*.raw
+    fi
+
 done
