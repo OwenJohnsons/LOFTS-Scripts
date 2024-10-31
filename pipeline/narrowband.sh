@@ -7,15 +7,14 @@
 station=$1
 path=$2
 
-project_path="/datax2/projects/LOFTS"
 
 # Check the station and set appropriate values
 if [ "$station" = "IE613" ]; then 
-    station_argument='p'
+    station_argument='n'
     barycenter_path='/home/obs/linux_64/BaryCentricCorrection/barycentre_seti'
 elif [ "$station" = "SE607" ]; then
     station_argument='p'
-    barycenter_path='/home/obs/linux_64/BaryCentricCorrection/barycentre_seti'
+    barycenter_path='/home/owen/BaryCentricCorrection/barycentre_seti'
 else 
     echo "Invalid station name. Please specify IE613 or SE607."
     exit 1
@@ -27,6 +26,13 @@ echo "Number of filterbanks found: $(echo "$filterbank_paths" | wc -w)"
 
 # Loop through filterbank files and display their header
 for filterbank in $filterbank_paths; do 
-    echo "Header of $filterbank"
-    header $filterbank  # Replace this with the correct command
+    target=$(basename $filterbank | awk -F'.' '{print $1}')
+    echo "Target : $target"
+    $barycenter_path $filterbank -site $station_argument -verbose >  $path/$target.bary.0000.fil
+
+    # remove .bar file after barycentering
+    rm polyco.bar 
+
+    # Run turboSETI 
+    turboSETI -g -n 412 -s 10 -M 4 $path/$target.bary.0000.fil
 done 
