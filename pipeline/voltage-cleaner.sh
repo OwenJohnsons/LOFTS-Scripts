@@ -15,7 +15,7 @@ touch $log_file
 touch $error_file
 exec > >(tee -a "$log_file") 2> >(tee -a "$error_file" >&2)
 
-raw_data_path="/datax2/projects/LOFTS/raw"
+raw_data_path="/datax2/projects/LOFTS"
 echo "Running voltage cleaner on $path"
 
 # Folders that begin with scan_
