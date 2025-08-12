@@ -75,11 +75,11 @@ SEFD = calc_SEFD(lofar_dish_area, tsys_v, eff = 1.0)
 print('SEFD: %s' % SEFD)
 
 narrowband_LOFAR = np.log10(obsEIRP(5, SEFD*Jansky, LOFAR_chunks['distance_gspphot'], obs_time, 3, 0.1))
-narrowband_LOFTS = np.log10(obsEIRP(5, SEFD*Jansky, LOFTS_chunks['distance_gspphot'], obs_time, 3, 0.1))
+narrowband_LOFTS = np.log10(obsEIRP(5, SEFD*Jansky, LOFTS_chunks['distance_gspphot'], 60*60, 3, 0.1))
 
 print('LOFAR Mean Narrowband (W/Hz): %s' % narrowband_LOFAR.mean())
 print('LOFTS Mean Narrowband (W/Hz): %s' % narrowband_LOFTS.mean())
-print('NenuFAR Mean Narrowband (W/Hz): %s' % narrowband_NenuFAR.mean())
+# print('NenuFAR Mean Narrowband (W/Hz): %s' % narrowband_NenuFAR.mean())
 
 # --- Narrowband Producing Fraction Calculations ---
 max_narrowband_LOFAR = narrowband_LOFAR.max(); min_narrowband_LOFAR = narrowband_LOFAR.min()
@@ -135,3 +135,4 @@ plt.ylim(1e-10, 1e0)
 
 # plt.show()
 plt.savefig('output-plots/narrowband-fraction-2D.png', bbox_inches='tight', transparent=True, dpi=300)
+# %%
