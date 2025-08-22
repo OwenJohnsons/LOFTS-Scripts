@@ -174,19 +174,27 @@ lines_low_frequency_y = [0, data['LOFTS'][3], data['LOFTS'][3], 0]
 nenuFAR_x = [data['NenuFAR'][2][0], data['NenuFAR'][2][0], data['NenuFAR'][2][1], data['NenuFAR'][2][1]]
 nenuFAR_y = [0, data['NenuFAR'][3], data['NenuFAR'][3], 0]
 
-plt.figure(figsize=(15,9))
+plt.figure(figsize=(15,12), dpi=200)
 plt.plot(line_pts_x_future, line_pts_y_future, color='black')
-# plt.plot(lines_low_frequency_x, lines_low_frequency_y, color='black')
-# plt.plot(nenuFAR_x, nenuFAR_y, color='black')
+plt.plot(lines_low_frequency_x, lines_low_frequency_y, color='black')
+plt.plot(nenuFAR_x, nenuFAR_y, color='black')
 
-clr = 'violet'
-clr2 = 'fuchsia'
+clr = '#F07B3F'
+clr2 = '#F07B3F'
+
+
+
+for i in [1]:
+    plt.gca().add_patch(patches.Polygon(
+        [(new_ngVLA_data[0][i][0], new_ngVLA_data[1][i] * E), (new_ngVLA_data[0][i][1], new_ngVLA_data[1][i] * E), 
+         (new_ngVLA_data[0][i][1], new_ngVLA_data[1][i]), (new_ngVLA_data[0][i][0], new_ngVLA_data[1][i])], 
+        facecolor=clr, label='Very high sensitivity', zorder = 3))
 
 for i in [0]:
     plt.gca().add_patch(patches.Polygon(
         [(new_ngVLA_data[0][i][0], new_ngVLA_data[1][i] * E), (new_ngVLA_data[0][i][1], new_ngVLA_data[1][i] * E), 
          (new_ngVLA_data[0][i][1], new_ngVLA_data[1][i]), (new_ngVLA_data[0][i][0], new_ngVLA_data[1][i])], 
-        facecolor=clr, label=r'Very high sensitivity', hatch = '//'))
+        facecolor=clr, hatch = '//'))
 
 for i in range(2, len(new_ngVLA_data[0])):
     plt.gca().add_patch(patches.Polygon(
@@ -203,8 +211,8 @@ for i in [1]:
              'ngVLA', color=clr2, size=11, fontweight='bold')
 
 
-clr = 'red'
-clr2 = 'firebrick'
+clr = '#EA5455'
+clr2 = '#EA5455'
 
 key = 'MeerKAT'
 plt.gca().add_patch(patches.Polygon(
@@ -233,8 +241,8 @@ for i in [4]:
              'GBT (2015-2021)', color=clr2, size=11, fontweight='bold')
     
 
-clr = 'gold'
-clr2 = 'orange'
+clr = '#40679E'
+clr2 = '#40679E'
 
 key = 'Project Phoenix (1995-2004)'
 plt.gca().add_patch(patches.Polygon(
@@ -268,8 +276,8 @@ for i in [0, 4]:
              'JVLA', color=clr2, size=11, fontweight='bold')
 
 
-clr = 'lightblue'
-clr2 = 'cornflowerblue'
+clr = '#2D4059'
+clr2 = '#2D4059'
 
 key = 'Harp 2016 (ATA)'
 plt.gca().add_patch(patches.Polygon(
@@ -296,38 +304,33 @@ key = 'Tarter 1980 (NRAO 91m)'
 plt.plot(np.mean(data[key][2]), data[key][3] / A, '|', color=clr, ms=15)
 plt.text(data[key][2][1] * 10 ** -0.61, data[key][3] * C / A, key, color=clr2, size=11, fontweight='bold')
 
-clr2 = 'limegreen'
-clr = clr2
+clr = '#40679E'
+clr2 = '#40679E'
 
-# key = 'LOFAR'
-# plt.gca().add_patch(patches.Polygon(
-#     [(data[key][2][0], data[key][3] * E), (data[key][2][1], data[key][3] * E), 
-#      (data[key][2][1], data[key][3]), (data[key][2][0], data[key][3])], facecolor=clr,
-#     label='Low Frequency (sub 0.2 GHz)'))
-# plt.text(data[key][2][1] * 10 ** -0.22, data[key][3] * C*1.4 / A, key, color=clr2, size=11, fontweight='bold')
 
-# key = 'LOFTS'
-# plt.gca().add_patch(patches.Polygon(
-#     [(data[key][2][0], data[key][3] * E), (data[key][2][1], data[key][3] * E), 
-#      (data[key][2][1], data[key][3]), (data[key][2][0], data[key][3])], facecolor=clr, hatch='//'))
-# plt.text(data[key][2][1] * 10 ** -0.45, data[key][3] * C / A, key, color=clr2, size=11, fontweight='bold')
+key = 'LOFAR'
+plt.gca().add_patch(patches.Polygon(
+    [(data[key][2][0], data[key][3] * E), (data[key][2][1], data[key][3] * E), 
+     (data[key][2][1], data[key][3]), (data[key][2][0], data[key][3])], facecolor=clr))
+plt.text(data[key][2][1] * 10 ** -0.22, data[key][3] * C*1.4 / A, key, color=clr2, size=11, fontweight='bold')
 
-# key = 'NenuFAR'
-# plt.gca().add_patch(patches.Polygon(
-#     [(data[key][2][0], data[key][3] * E), (data[key][2][1], data[key][3] * E),
-#         (data[key][2][1], data[key][3]), (data[key][2][0], data[key][3])], facecolor=clr, hatch='//'))
-# plt.text(data[key][2][1] * 10 ** -0.3, data[key][3] * C*1.5 / A, key, color=clr2, size=11, fontweight='bold')
+key = 'LOFTS'
+plt.gca().add_patch(patches.Polygon(
+    [(data[key][2][0], data[key][3] * E), (data[key][2][1], data[key][3] * E), 
+     (data[key][2][1], data[key][3]), (data[key][2][0], data[key][3])], facecolor=clr, hatch='//'))
+plt.text(data[key][2][1] * 10 ** -0.45, data[key][3] * C / A, key, color=clr2, size=11, fontweight='bold')
 
-# plt.axvspan(0, 550, color='red', alpha=0.5)
+key = 'NenuFAR'
+plt.gca().add_patch(patches.Polygon(
+    [(data[key][2][0], data[key][3] * E), (data[key][2][1], data[key][3] * E),
+        (data[key][2][1], data[key][3]), (data[key][2][0], data[key][3])], facecolor=clr, hatch='//'))
+plt.text(data[key][2][1] * 10 ** -0.3, data[key][3] * C*1.5 / A, key, color=clr2, size=11, fontweight='bold')
 
-clr = 'violet'
-clr2 = 'fuchsia'
+# plt.axvspan(0, 550, color='#EA5455', alpha=0.5)
 
-for i in [1]:
-    plt.gca().add_patch(patches.Polygon(
-        [(new_ngVLA_data[0][i][0], new_ngVLA_data[1][i] * E), (new_ngVLA_data[0][i][1], new_ngVLA_data[1][i] * E), 
-         (new_ngVLA_data[0][i][1], new_ngVLA_data[1][i]), (new_ngVLA_data[0][i][0], new_ngVLA_data[1][i])], 
-        facecolor=clr))
+clr = '#F07B3F'
+clr2 = '#F07B3F'
+
 
 
 plt.xscale('log')
@@ -335,16 +338,16 @@ plt.yscale('log')
 plt.xlim(10 ** 1.6, 10 ** 5.6)
 plt.ylim(10 ** -3, 10 ** 4.75)
 
-plt.xticks(ticks=[100, 1000, 10000, 100000], labels=['0.1', '1', '10', '100'])
-plt.yticks(ticks=[0.01, 0.1, 1, 10, 100, 1000, 10000], labels=['0.01', '0.1', '1', '10', '100', '1000', '10000'])
+plt.xticks(ticks=[100, 1000, 10000, 100000], labels=['0.1', '1', '10', '100'], fontsize=17)
+plt.yticks(ticks=[0.01, 0.1, 1, 10, 100, 1000, 10000], labels=['0.01', '0.1', '1', '10', '100', '1000', '10000'], fontsize=17)
 
-plt.xlabel('Observing frequency  (GHz)', fontsize=18)
-plt.ylabel(r'Sky coverage  (deg$^2$)', fontsize=18)
+plt.xlabel('Observing frequency  (GHz)', fontsize=22)
+plt.ylabel(r'Sky coverage  (deg$^2$)', fontsize=22)
 #plt.title('Extent of SETI projects in parameter space', fontsize=18)
 
 # plt.gcf().set_size_inches(15, 12)
 # plt.rc('font', size=15)
-plt.legend(fontsize=13, loc='upper right')
+plt.legend(fontsize=17, loc='upper right')
 plt.grid()
-plt.savefig('SETI-Frequency-Parameter-Space-without-low-freq.png', bbox_inches='tight')
+plt.savefig('SETI-Frequency-Parameter-Space.pdf', bbox_inches='tight')
 plt.show()
