@@ -1,69 +1,114 @@
-# Code Purpose : Generate filterbanks for SETI purposes from raw data on the Breakthrough Listen backend. 
+#!/bin/bash
 
-# Arguments 
+# Arguments
 # $1 : Directory path
+# $2 : Station prefix: IE or SE
 
 path=$1
-raw_data_path="/datax2/projects/LOFTS/raw"
+station=$2
 
-# LOGGING 
+# check station prefix
+if [ "$station" != "IE" ] && [ "$station" != "SE" ]; then
+    echo "Invalid station prefix. Use IE or SE. Exiting..."
+    exit 1
+fi
+
+if [ "$station" == "IE" ]; then
+    port_prefix=1613
+    station_prefix="IE613_16130"
+else
+    port_prefix=1607
+    station_prefix="SE607_16070"
+fi
+
+# LOGGING
 time=$(date +"%H:%M")
 log_name=$(echo $path | awk -F'/' '{print $NF}')
-log_file="/datax2/projects/LOFTS/logs/filgen/${log_name}_${time}.out"
-error_file="/datax2/projects/LOFTS/logs/filgen/${log_name}_${time}.err"
+log_dir="/datax2/projects/LOFTS/data/LOFTS/logs/filgen"
+mkdir -p "$log_dir"
+log_file="${log_dir}/${log_name}_${time}.out"
+error_file="${log_dir}/${log_name}_${time}.err"
 
+# start logging
+{
+echo "===== Script started at $(date) ====="
+echo "Directory: $path"
+echo "Station: $station"
 
-# Folders that begin with scan_
-header_folders=$(find $path -type d -name "scan_*")
-echo "Number of scan folders found : $(echo $header_folders | wc -w)"
+folders=$(find $path -type d \( -name "*scan_*" -o -name "*scan_B*" \))
+date=$(echo $path | awk -F'/' '{print $(NF)}' | sed 's/^.*sid\([0-9]\{8\}\)T.*/\1/' | sed 's/\([0-9]\{4\}\)\([0-9]\{2\}\)\([0-9]\{2\}\)/\1-\2-\3/')
 
-for folder in $header_folders; do 
-    # find file with .h extension
-    h_file=$(find $folder -name "*.h")
+echo "Number of folders found : $(echo $folders | wc -w)"
+echo "Date of observations: $date"
 
-    if grep -q "IE613" $h_file; then 
-        station_prefix="IE613_16130"
-        station="IE613"
-    else 
-        station_prefix="SE607_16070"
-        station="SE607"
+for folder in $folders; do
+    echo "-------------------------------"
+    echo "Processing folder: $folder"
+    target=$(echo $folder | awk -F'/' '{print $NF}' | sed 's/^.\{5\}//')
+    echo "Processing Target : $target"
+
+    output_dir="/datax2/projects/LOFTS/$date/$target"
+    if [ ! -d "$output_dir" ]; then
+        mkdir -p "$output_dir"
     fi
 
-    # Grab scan .log file 
-    log_file=$(find $folder -name "*.log" | head -n 1)
-    zst_scan_path=$(awk 'NR==4 {print $2}' "$log_file")
+    echo "Output directory: $output_dir"
 
-    # replace lane0 with [[port]] and $station_prefix with $station_prefix[0:-1][[port]]
-    zst_scan_path=$(echo "$zst_scan_path" | sed "s/lane0/lane[[port]]/g" | sed "s/$station_prefix/${station_prefix:0:-1}[[port]]/g")
-    zst_time_suffix=$(echo "$zst_scan_path" | awk -F '.' '{print $(NF-2)}')
-    obs_date=$(echo "$zst_time_suffix" | awk -F 'T' '{print $1}')
-    target=$(echo "$zst_scan_path" | awk -F'/' '{print $9}')
-    output_dir="$raw_data_path/$obs_date/$target"
-
-    if [ ! -d $output_dir ]; then 
-        mkdir -p $output_dir
-    fi
-
-    # check if there are any .raw files in the output directory
-    raw_files=$(find $output_dir -name "*.raw")
-    if [ ! -z "$raw_files" ]; then 
-        echo "Raw files already exist in $output_dir. Skipping lofar_udp_extractor..."
+    # check if there are any .fil files in the output directory
+    fil_files=$(find "$output_dir" -name "*.fil")
+    if [ ! -z "$fil_files" ]; then
+        echo "Filterbank files already exist in $output_dir. Skipping lofar_udp_extractor..."
     else
-        # Run lofar_udp_extractor inside the Singularity container
-        singularity exec --bind /datax,/datax2 /datax2/obs/singularity/lofar-upm_latest.simg \
-            lofar_udp_extractor -p 30 -M GUPPI \
-            -I $h_file \
-            -S 1 -b 0,412 \
-            -i $zst_scan_path \
-            -o "$output_dir/${target}.[[iter]].raw" \
-            -m 4096
+        # New zst_scan_path logic
+        h_file=$(find "$folder" -name "*.h")
+        log_file_scan=$(find "$folder" -name "*.log" | head -n 1)
+        zst_scan_path=$(awk 'NR==4 {print $2}' "$log_file_scan")
+        zst_scan_path=$(echo "$zst_scan_path" | sed "s/lane0/lane[[port]]/g" | sed "s/$station_prefix/${station_prefix:0:-1}[[port]]/g")
+        echo "Scan path: $zst_scan_path"
+
+        metadata=$h_file
+
+        raw_files=$(find "$output_dir" -name "*.raw")
+        if [ ! -z "$raw_files" ]; then
+            echo "Raw files already exist in $output_dir. Skipping lofar_udp_extractor..."
+        else
+            echo "Running lofar_udp_extractor..."
+            singularity exec --bind /datax,/datax2 /datax2/obs/singularity/lofar-upm_latest.simg \
+                lofar_udp_extractor -p 30 -M GUPPI \
+                -S 1 -b 0,412 \
+                -i "${zst_scan_path}" \
+                -o "${output_dir}/${target}.[[iter]].raw" \
+                -m 4096 -I "${metadata}"
+        fi
     fi
 
     # Check if 0000.fil, 0001.fil, and 0002.fil files exist in the output directory
     if [ -f "$output_dir/${target}.rawspec.0000.fil" ] && [ -f "$output_dir/${target}.rawspec.0001.fil" ] && [ -f "$output_dir/${target}.rawspec.0002.fil" ]; then
         echo "Filterbank files 0000.fil, 0001.fil, and 0002.fil exist in $output_dir. Skipping rawspec..."
     else
-        # Run rawspec if the required .fil files do not exist
-        rawspec -f 65536,8,64 -t 54,16,3072 -p 1,1,4 $output_dir/${target}
+        echo "Running rawspec..."
+        rawspec -f 65536,8,64 -t 54,16,3072 -p 1,1,4 "$output_dir/${target}"
+    fi
+
+    # === PLOT CANDIDATES ===
+    echo "Plotting candidates..."
+    for fil in "$output_dir"/*.fil; do
+        python "./plot-cands.py" -f "$fil" -s "$station"
+    done
+
+    echo "Processing PNG directory..."
+    python "./process-pngs.py" "$target" "$output_dir"
+
+    # clean .raw files after filterbank generation
+    if [ -f "$output_dir/${target}.rawspec.0000.fil" ] && [ -f "$output_dir/${target}.rawspec.0001.fil" ] && [ -f "$output_dir/${target}.rawspec.0002.fil" ]; then
+        echo "Cleaning raw files..."
+        rm -f "$output_dir/${target}"*.raw
     fi
 done
+
+echo "===== Script finished at $(date) ====="
+
+} 2> >(tee -a "$error_file" >&2) | tee -a "$log_file"
+
+echo "Log written to: $log_file"
+echo "Errors written to: $error_file"
