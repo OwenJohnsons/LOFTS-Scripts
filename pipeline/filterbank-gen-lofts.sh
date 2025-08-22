@@ -24,12 +24,11 @@ fi
 # LOGGING
 time=$(date +"%H:%M")
 log_name=$(echo $path | awk -F'/' '{print $NF}')
-log_dir="/datax2/projects/LOFTS/data/LOFTS/logs/filgen"
+log_dir="/datax2/projects/LOFTS/logs/filgen"
 mkdir -p "$log_dir"
 log_file="${log_dir}/${log_name}_${time}.out"
 error_file="${log_dir}/${log_name}_${time}.err"
 
-# start logging
 {
 echo "===== Script started at $(date) ====="
 echo "Directory: $path"
@@ -58,8 +57,9 @@ for folder in $folders; do
     fil_files=$(find "$output_dir" -name "*.fil")
     if [ ! -z "$fil_files" ]; then
         echo "Filterbank files already exist in $output_dir. Skipping lofar_udp_extractor..."
+        fil_exist=true
     else
-        # New zst_scan_path logic
+        fil_exist=false
         h_file=$(find "$folder" -name "*.h")
         log_file_scan=$(find "$folder" -name "*.log" | head -n 1)
         zst_scan_path=$(awk 'NR==4 {print $2}' "$log_file_scan")
@@ -91,13 +91,23 @@ for folder in $folders; do
     fi
 
     # === PLOT CANDIDATES ===
-    echo "Plotting candidates..."
-    for fil in "$output_dir"/*.fil; do
-        python "./plot-cands.py" -f "$fil" -s "$station"
-    done
+    if [ "$fil_exist" = true ]; then
+        echo "Skipping plotting and slack upload."
+    else
+        png_files=$(find "$output_dir" -name "*.png")
+        if [ $(echo "$png_files" | wc -w) -ge 3 ];
+        then
+            echo "PNG files already exist in $output_dir. Skipping plotting..."
 
-    echo "Processing PNG directory..."
-    python "./process-pngs.py" "$target" "$output_dir"
+        else 
+            echo "PNG files do not exist in $output_dir. Proceeding to plotting..."
+            for fil in "$output_dir"/*.fil; do
+                python "/datax2/projects/LOFTS/LOFTS-Scripts/pipeline/plot-bandpass.py" -f "$fil" -s "$station"
+            done
+
+            python "/datax2/projects/LOFTS/LOFTS-Scripts/pipeline/slack-bandpass.py" "$output_dir"
+        fi
+    fi
 
     # clean .raw files after filterbank generation
     if [ -f "$output_dir/${target}.rawspec.0000.fil" ] && [ -f "$output_dir/${target}.rawspec.0001.fil" ] && [ -f "$output_dir/${target}.rawspec.0002.fil" ]; then
