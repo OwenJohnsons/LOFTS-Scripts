@@ -6,7 +6,6 @@ import sys
 import pathlib
 
 
-
 client = WebClient(token=SLACK_TOKEN)
 
 def upload_file_v2(file_path: pathlib.Path, title: str):
@@ -29,7 +28,7 @@ def main():
         print(f"Usage: {sys.argv[0]} <png_directory>")
         sys.exit(1)
 
-    png_dir = pathlib.Path(sys.argv[2])
+    png_dir = pathlib.Path(sys.argv[1])
 
     if not png_dir.is_dir():
         print(f"Error: {png_dir} is not a directory.")
