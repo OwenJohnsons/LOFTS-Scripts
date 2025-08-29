@@ -90,23 +90,26 @@ for folder in $folders; do
         rawspec -f 65536,8,64 -t 54,16,3072 -p 1,1,4 "$output_dir/${target}"
     fi
 
-    # === PLOT CANDIDATES ===
-    if [ "$fil_exist" = true ]; then
-        echo "Skipping plotting and slack upload."
-    else
-        png_files=$(find "$output_dir" -name "*.png")
-        if [ $(echo "$png_files" | wc -w) -ge 3 ];
-        then
-            echo "PNG files already exist in $output_dir. Skipping plotting..."
+    # === PLOT CANDIDATES ===ß
+    png_count=$(find "$output_dir" -maxdepth 1 -type f -name "*.png" | wc -l)
 
-        else 
-            echo "PNG files do not exist in $output_dir. Proceeding to plotting..."
+    if [ "$png_count" -eq 0 ]; then
+        echo "No PNG plots found in $output_dir. Generating plots..."
+
+        fil_count=$(find "$output_dir" -maxdepth 1 -type f -name "*.fil" | wc -l)
+        if [ "$fil_count" -eq 0 ]; then
+            echo "No .fil files found in $output_dir. Cannot generate plots. Skipping Slack upload."
+        else
             for fil in "$output_dir"/*.fil; do
+                [ -e "$fil" ] || continue
                 python "/datax2/projects/LOFTS/LOFTS-Scripts/pipeline/plot-bandpass.py" -f "$fil" -s "$station"
             done
 
+            echo "Uploading plots to Slack..."
             python "/datax2/projects/LOFTS/LOFTS-Scripts/pipeline/slack-bandpass.py" "$output_dir"
         fi
+    else
+        echo "Found $png_count PNG plot(s) in $output_dir. Skipping plotting and Slack upload."
     fi
 
     # clean .raw files after filterbank generation
