@@ -3,28 +3,60 @@
 
 # ===== CLI =====
 DRY_RUN=false
-if [[ "$1" == "-n" || "$1" == "--dry-run" ]]; then
-    DRY_RUN=true
-    shift
-fi
+SKIP_TARGETS=()
+
+usage() {
+    cat <<EOF
+Usage: $0 [-dry|--dry-run] [--skip|--skip-target <name[,name2,...]>] <directory_path> <IE|SE>
+
+Options:
+  -dry, --dry-run          Print commands without executing.
+      --skip LIST          Comma-separated list of targets (or glob patterns) to skip.
+      --skip-target LIST   Alias of --skip. Can be provided multiple times.
+
+Matching behavior:
+  - Matches either full scan ID (e.g., "01_B0329+54") or base name ("B0329+54").
+  - Shell globs supported: "01_*", "B03*", etc.
+EOF
+    exit 1
+}
+
+# Parse flags
+while [[ "$1" == -* ]]; do
+  case "$1" in
+    -dry|--dry-run)
+      DRY_RUN=true; shift ;;
+    --skip|--skip-target)
+      [[ -z "$2" ]] && { echo "ERROR: $1 requires a value"; usage; }
+      while IFS= read -r item; do
+        item_trimmed="$(echo "$item" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+        [[ -n "$item_trimmed" ]] && SKIP_TARGETS+=("$item_trimmed")
+      done < <(printf "%s" "$2" | tr ',' '\n')
+      shift 2 ;;
+    -h|--help) usage ;;
+    --) shift; break ;;
+    *)
+      echo "Unknown option: $1"
+      usage ;;
+  esac
+done
 
 # Args
 path=$1       # e.g. /datax/Projects/.../sess_sidYYYYMMDDTHHMMSS_SE607[/scan_*]
 station=$2    # IE or SE
-
-usage() {
-    echo "Usage: $0 [-n|--dry-run] <directory_path> <IE|SE>"
-    exit 1
-}
 [[ -z "$path" || -z "$station" ]] && usage
 
 # ===== Helpers =====
-run() {
-    if $DRY_RUN; then
-        echo "[DRY-RUN] $*"
-    else
-        "$@"
-    fi
+run() { if $DRY_RUN; then echo "[DRY-RUN] $*"; else "$@"; fi; }
+
+# match full scan id OR base name; support globs
+should_skip_target() {
+  local scan_id="$1"               # e.g., 01_B0329+54
+  local base_name="${scan_id#*_}"  # -> B0329+54
+  for pat in "${SKIP_TARGETS[@]}"; do
+    [[ "$scan_id" == $pat || "$base_name" == $pat ]] && return 0
+  done
+  return 1
 }
 
 set +x 2>/dev/null
@@ -57,6 +89,7 @@ echo "===== Script started at $(date) ====="
 echo "Directory: $path"
 echo "Station: $station"
 $DRY_RUN && echo "Mode: DRY-RUN (side-effect commands will not execute)"
+echo "Skip list: ${SKIP_TARGETS[*]:-(none)}"
 
 # ===== Discover scan folders =====
 # Accept either a parent session dir or a single scan_* dir
@@ -82,9 +115,13 @@ for folder in $folders; do
     echo "-------------------------------"
     echo "Processing folder: $folder"
 
-    # Target name from scan_* directory
     target=$(basename "$folder" | sed 's/^.\{5\}//')
     echo "Processing Target : $target"
+
+    if should_skip_target "$target"; then # this doesn't work at present 
+        echo "Skipping target '$target' as requested."
+        continue
+    fi
 
     output_dir="/datax2/projects/LOFTS/$date/$target"
     if [[ ! -d "$output_dir" ]]; then
@@ -223,4 +260,4 @@ echo "===== Script finished at $(date) ====="
 } 2> >(tee -a "$error_file" >&2) | tee -a "$log_file"
 
 echo "Log written to: $log_file"
-echo "Errors written to: $error_filed"
+echo "Errors written to: $error_file"
