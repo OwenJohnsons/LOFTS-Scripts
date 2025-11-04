@@ -178,6 +178,7 @@ for folder in $folders; do
                 udp_basename=$(basename "$udp_example")
                 udp_template=$(echo "$udp_basename" | sed -E "s/(udp_${station_code}_${port_prefix})([0-2]?[0-9])/\1[[port]]/")
                 zst_scan_path="${bfs_dir}/${udp_template}"
+                
             fi
         else
             if [[ -n "$log_file_scan" ]]; then
@@ -192,6 +193,10 @@ for folder in $folders; do
 
         echo "Scan path: $zst_scan_path"
 
+        # --- Grabbing start time for skip --- 
+        zst_start="${zst_scan_path: -27:19}"
+        jump_time=$(date -d "$zst_start 20 seconds" +"%Y-%m-%dT%H:%M:%S")
+
         # ---- Run UDP ----
         raw_files=$(find "$output_dir" -name "*.raw" 2>/dev/null)
         if [[ -n "$raw_files" ]]; then
@@ -199,12 +204,12 @@ for folder in $folders; do
         else
             echo "Running lofar_udp_extractor..."
             run singularity exec --bind /datax,/datax2 /datax2/obs/singularity/lofar-upm_latest.simg \
-                lofar_udp_extractor -p 30 -M GUPPI \
+                lofar_udp_extractor -p 30 -t "${jump_time}" -M GUPPI \
                 -S 1 -b 0,412 \
                 -i "${zst_scan_path}" \
                 -o "${output_dir}/${target}.[[iter]].raw" \
                 -m 4096 -I "${metadata}"
-            # Ensure ownership after extractor
+            
             run chown -R 1000:1000 "$output_dir"
         fi
     fi
