@@ -1,0 +1,248 @@
+Bootstrap: docker
+From: nvidia/cuda:11.4.3-devel-ubuntu18.04
+
+%labels
+    Maintainer "David McKenna and Owen Johnson"
+    Description "CUDA 10.2 + pulsar/FRB toolchain (PSRCHIVE, DSPSR, PRESTO, HEIMDALL)"
+
+%environment
+    export SOFT=/home/soft
+    export PGPLOT_DIR=/usr/lib/pgplot5
+    export PSRCAT_FILE=$SOFT/psrcat_tar/psrcat.db
+    export TEMPO=$SOFT/tempo
+    export TEMPO2=$SOFT/tempo2/T2runtime
+    export PRESTO=$SOFT/presto
+    export PATH=$PATH:$SOFT/presto/bin:$SOFT/psrcat_tar:/usr/local/bin
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/include:$SOFT/presto/lib
+    export CPATH=/usr/include/hdf5/serial:$CPATH
+    export CUDA_HOME=/usr/local/cuda
+    export CUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME
+    export LIBRARY_PATH=$CUDA_HOME/lib64:/usr/local/lib:$LIBRARY_PATH
+    export LD_LIBRARY_PATH=$CUDA_HOME/lib64:/usr/local/lib:$LD_LIBRARY_PATH
+    export CFLAGS="-mtune=native -I$CUDA_HOME/include $CFLAGS -lstdc++"
+    export CPPFLAGS="$CFLAGS $CPP_FLAGS"
+    export CUDA_CFLAGS="-I$CUDA_HOME/include $CUDA_CFLAGS -lstdc++"
+    export CUDA_LIBS="-L$CUDA_HOME/lib64 -lcudart $CUDA_LIBS -lstdc++"
+    export PAKCAGES="/usr/local/cuda"
+    # Prefer oneAPI (icc/icpc aliases to icx/icpx set in /etc/profile.d/oneapi.sh)
+    export CC=icc
+    export CXX=icpc
+    export F77=ifort
+    export FC=ifort
+
+%post
+    #!/bin/bash
+    set -eu
+    export DEBIAN_FRONTEND=noninteractive
+
+    apt-get update && \
+    apt-get install -y software-properties-common apt-utils wget && \
+    add-apt-repository -y multiverse && \
+    add-apt-repository -y ppa:ubuntu-toolchain-r/test && \
+    cd /tmp && \
+      wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB && \
+      apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB && \
+      add-apt-repository -y "deb https://apt.repos.intel.com/oneapi all main"
+
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        autoconf autogen automake autotools-dev bison cmake csh curl cvs doxygen flex \
+        g++-7 g++-9 g++-multilib gcc-7 gcc-9 gcc-multilib gdb gfortran gfortran \
+        git gnupg-agent gsl-bin hwloc intel-hpckit intel-oneapi-ipp intel-oneapi-ipp-devel \
+        intel-oneapi-mkl intel-oneapi-mkl-devel intel-oneapi-tbb intel-oneapi-tbb-devel \
+        intel-oneapi-openmp libboost-all-dev libblas-dev libbz2-dev \
+        libfftw3-3 libfftw3-bin libfftw3-dev libfftw3-single3 libglib2.0-dev \
+        libgsl-dev libgslcblas0 libhdf5-dev libhdf5-m* libhdf5-o* libhdf5-s* \
+        libicu-dev liblapack-dev libltdl-dev libpcre3-dev libpng-dev libpnglite-dev \
+        librdmacm-dev libtool libtool-bin libx11-dev libxml2-dev mlocate nano pgplot5 \
+        pkg-config python3-dev python3-matplotlib python3-pip python3-setuptools \
+        python3-wheel qt5-default rdma-core rdmacm-utils tcsh tth-common unzip valgrind \
+        yodl zstd libzstd-dev && \
+    apt-get remove -y python2.7* libpython2* libpython-* intel-oneapi-dnn* intel-oneapi-python intel-oneapi-dal* && \
+    update-alternatives --install /usr/bin/python python /usr/bin/python3 60 && \
+    update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 60 --slave /usr/bin/g++ g++ /usr/bin/g++-9 && \
+    update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 90 --slave /usr/bin/g++ g++ /usr/bin/g++-7 && \
+    pip3 install --upgrade pip numpy setuptools sphinx==1.7.9 wheel \
+        git+https://github.com/FRBs/sigpyproc3 ipython psrqpy sunpy tqdm && \
+    rm -rf /var/lib/apt/lists/*
+
+    # HDF5 symlinks expected by PSRCHIVE
+    cd /usr/lib/x86_64-linux-gnu && \
+      ln -s libhdf5_serial.so libhdf5.so || true && \
+      ln -s libhdf5_serial_hl.so libhdf5_hl.so || true
+
+    # Make SOFT root
+    mkdir -p /home/soft
+    cd /home/soft
+    git config --global http.postBuffer 1048576000
+
+    # Repos / sources (stable-ish)
+    git clone https://github.com/NVlabs/cub.git cub
+    git clone https://github.com/ajameson/dedisp.git dedisp
+    git clone https://git.code.sf.net/p/heimdall-astro/code heimdall
+    git clone https://github.com/scottransom/psrfits_utils
+    git clone https://github.com/SixByNine/psrxml
+    git clone https://github.com/swig/swig.git swig
+    git clone https://github.com/GPU-correlators/xGPU.git xgpu
+    wget --no-verbose --no-check-certificate https://www.imcce.fr/content/medias/recherche/equipes/asd/calceph/calceph-3.0.0.tar.gz
+    wget --no-verbose wget https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/cfitsio-4.6.2.tar.gz
+    tar -zxvf calceph-3.0.0.tar.gz && rm calceph-3.0.0.tar.gz
+    tar -zxvf cfitsio-4.6.2.tar.gz && rm cfitsio-4.6.2.tar.gz
+
+    # Repos (active development)
+    # BUILD_DATE file to force rebuilds if desired
+    BUILD_DATE=2020-01-10 && touch "$BUILD_DATE"
+    git clone https://github.com/David-McKenna/cdmt.git
+    git clone https://git.code.sf.net/p/dspsr/code dspsr
+    git clone https://github.com/straten/epsic.git
+    git clone https://gist.github.com/799d2873605c189d8261f32b81b3c90c.git /etc/fftw
+    git clone https://gitlab.com/kmrajwade/iqrm_apollo
+    git clone https://github.com/scottransom/presto.git
+    git clone https://git.code.sf.net/p/psrchive/code psrchive
+    git clone https://git.code.sf.net/p/psrdada/code psrdada
+    git clone https://github.com/AA-ALERT/psrdada-python
+    git clone https://github.com/weltevrede/psrsalsa.git
+    git clone https://github.com/v-morello/riptide
+    git clone https://github.com/David-McKenna/sigproc
+    git clone https://git.code.sf.net/p/tempo/tempo
+    git clone https://bitbucket.org/psrsoft/tempo2.git tempo2
+    git clone https://github.com/David-McKenna/udpPacketManager.git
+    wget --no-verbose http://www.atnf.csiro.au/people/pulsar/psrcat/downloads/psrcat_pkg.tar.gz
+    tar -zxvf psrcat_pkg.tar.gz && rm psrcat_pkg.tar.gz
+
+    # Move CUB into includes
+    cd /home/soft/cub && cp -r cub /usr/local/include/ && updatedb && ldconfig
+
+    # Build cfitsio, psrfits_utils, psrcat, xGPU, swig (pinned), calceph, psrxml
+    cd /home/soft/cfitsio-3.48 && \
+      ./configure --prefix=/usr/local --enable-reentrant && make -j"$(nproc)" && make install
+    cd /home/soft/psrfits_utils && \
+      sed -i 's/-Werror//' configure.ac && ./prepare && \
+      ./configure --enable-shared --x-libraries=/usr/lib/x86_64-linux-gnu && \
+      make install
+    cd /home/soft/psrcat_tar && ./makeit
+    cd /home/soft/xgpu/src && make CPPFLAGS="" CFLAGS="-I$CUDA_HOME/include -lstdc++" CUDA_ARCH=sm_70 NSTATION=196 -j"$(nproc)" && make install
+    cd /home/soft/swig && \
+      git reset --hard 1c42135 && \
+      bash autogen.sh && \
+      ./configure --enable-shared --x-libraries=/usr/lib/x86_64-linux-gnu && \
+      make -j"$(nproc)" && make install && updatedb && ldconfig
+    cd /home/soft/calceph-3.0.0 && \
+      ./configure --with-pic --enable-shared --enable-static --enable-thread --enable-fortran && \
+      make -j"$(nproc)" && make install && updatedb && ldconfig
+    cd /home/soft/psrxml && autoreconf --install --warnings=none && ./configure && make -j"$(nproc)" && make install
+
+    # TEMPO & TEMPO2
+    cd /home/soft/tempo && \
+      echo " 3801692.284   -528984.335      5076957.630    1  ILOFAR              n  IL" >> obsys.dat && \
+      F77=gfortran ./prepare && \
+      F77=gfortran ./configure --enable-shared --x-libraries=/usr/lib/x86_64-linux-gnu && \
+      make CFLAGS="$CFLAGS -fPIE" F77=gfortran -j"$(nproc)" && make install && updatedb && ldconfig
+
+    cd /home/soft/tempo2 && \
+      echo "Ielfr n" >> ./T2runtime/observatory/aliases && \
+      printf "# IE613 LOFAR Station\n 3801633.868    -529022.268     5076996.892      IE613LBA            Ielfrlba\n 3801633.868    -529022.268     5076996.892      IE613LBH            Ielfrlbh\n 3801692.284    -528984.335     5076957.630      IE613HBA            Ielfrhba\n 3801692.284    -528984.335     5076957.630      IE613               Ielfr" >> ./T2runtime/observatory/observatories.dat && \
+      ./bootstrap && \
+      ./configure --with-calceph=/home/soft/calceph-3.0.0 --x-libraries=/usr/lib/x86_64-linux-gnu --prefix=/usr/local && \
+      make -j"$(nproc)" && make plugins -j"$(nproc)" && \
+      make install && make plugins-install && updatedb && ldconfig
+
+    # PSRDADA
+    cd /home/soft/psrdada && \
+      FLAGS="-lstdc++" ./bootstrap && \
+      ./configure --enable-shared --x-libraries=/usr/lib/x86_64-linux-gnu && \
+      make -j"$(nproc)" && make install
+
+    # PSRCHIVE
+    cd /home/soft/psrchive && \
+      git reset --hard 962395 && \
+      wget https://gist.githubusercontent.com/David-McKenna/6fa0a5df837d9f4072d8bc1daf38966c/raw/72b9cf832f21f64233d308cbbfbff49d78d1cf38/0001-Add-support-for-I-LOFAR-telescope-code.patch && \
+      git apply 0001-Add-support-for-I-LOFAR-telescope-code.patch && \
+      ./bootstrap && \
+      ./configure --enable-shared --x-libraries=/usr/lib/x86_64-linux-gnu --with-psrxml-dir=/usr/local --enable-static LIBS="-lpsrxml -lxml2" && \
+      make -j"$(nproc)" && make install && updatedb && ldconfig && \
+      psrchive_config > /root/.psrchive.cfg && \
+      sed -i "s/# Predictor::default = polyco/Predictor::default = tempo2/" /root/.psrchive.cfg && \
+      sed -i "s/# Predictor::policy = ephem/Predictor::policy = default/" /root/.psrchive.cfg && \
+      sed -i "s/# WeightedFrequency::round_to_kHz = 1/WeightedFrequency::round_to_kHz = 0/" /root/.psrchive.cfg
+
+    # Dedisp
+    cd /home/soft/dedisp && \
+      sed -i 's/sm_30/sm_70/' Makefile.inc && \
+      sed -i 's/$(HOME)\/linux_64/\/usr\/local/' Makefile.inc && \
+      make -j"$(nproc)" && make install
+
+    # DSPSR
+    cd /home/soft/dspsr && \
+      wget https://gist.githubusercontent.com/David-McKenna/dd15cead53a72ccd72b79a6d946f5d71/raw/63fb65a9267b716fff20de9a6532fa7a4a025220/0001-Add-support-for-I-LOFAR-telescope-code.patch && \
+      git apply 0001-Add-support-for-I-LOFAR-telescope-code.patch && \
+      echo "dada dummy fits guppi lump sigproc ska1" > backends.list && \
+      ./bootstrap && \
+      ./configure --enable-shared --x-libraries=/usr/lib/x86_64-linux-gnu --with-psrxml-dir=/usr/local --enable-static LIBS="-lpsrxml -lxml2" && \
+      grep -rl 'restrict throw()' ./ | xargs sed -i 's/restrict throw()/throw()/g' && \
+      make -j"$(nproc)" && make install && updatedb && ldconfig
+
+    # Heimdall
+    cd /home/soft/heimdall && \
+      sed -i 's/cat conftest.i/echo "1_65_1"/' config/boost.m4 && \
+      sed -i 's/print command/print(command)/' cudalt.py && \
+      ./bootstrap && \
+      ./configure CPPFLAGS="-I$CUDA_HOME/include" CFLAGS="-I$CUDA_HOME/include" --with-boost=/usr && \
+      sed -i 's/-Xcompiler \"\$(DEFAULT_INCLUDES) \$(INCLUDES) \$(AM_CPPFLAGS) \$(CPPFLAGS)/-Xcompiler \\\"\$(DEFAULT_INCLUDES) \$(INCLUDES) \$(AM_CPPFLAGS) \$(CPPFLAGS)\\/g' Pipeline/Makefile && \
+      make -j"$(nproc)" && make install
+
+    # SIGPROC
+    cd /home/soft/sigproc && \
+      F77=gfortran CC=gcc CXX=g++ ./bootstrap && \
+      F77=gfortran CC=gcc CXX=g++ ./configure && \
+      make F77=gfortran CC=gcc CXX=g++ -j"$(nproc)" && make install && updatedb && ldconfig
+
+    # PRESTO
+    cd /home/soft/presto/src && \
+      cp /etc/fftw/wisdomf /home/soft/presto/lib/fftw_wisdom.txt && \
+      wget https://gist.githubusercontent.com/David-McKenna/62d3c9c95d5ac36c839d270036e98e8b/raw/54ce1b0778df59af72a0b5e8b4f867a0c4b5ec8d/0001-Add-support-for-I-LOFAR-telescope-to-PRESTO.patch && \
+      git apply 0001-Add-support-for-I-LOFAR-telescope-to-PRESTO.patch && \
+      make -j"$(nproc)" && \
+      cd .. && CC=gcc pip3 install . && \
+      python3.6 tests/test_presto_python.py || true
+
+    # udpPacketManager, PSRSalsa, CDMT, riptide, PSRDADA-python
+    cd /home/soft/udpPacketManager && \
+      apt-get update && \
+      make mockHeader calibration-prep all install && \
+      rm -rf /var/lib/apt/lists/*
+
+    cd /home/soft/psrsalsa && \
+      sed -i 's/-DGSL_VERSION_NUMBER=115/-DGSL_VERSION_NUMBER=204/g' Makefile && \
+      make && cd bin && rm -f README.txt && cp ./* /usr/local/bin/
+
+    cd /home/soft/cdmt && \
+      git pull origin && \
+      make cdmt_udp CC=icc && make cdmt_udp_stokesV CC=icc && \
+      cp ./cdmt_ud* /usr/local/bin/
+
+    cd /home/soft/riptide && make install CC=gcc CXX=g++
+
+    cd /home/soft/psrdada-python && \
+      python3 -m pip install -r requirements.txt && make && make test || true && make install
+
+    # OneAPI environment + aliases on login shells
+    printf 'unset CMPLR_ROOT; source /opt/intel/oneapi/setvars.sh; alias icc="icx"; alias icpc="icpx"\n' > /etc/profile.d/oneapi.sh
+    chmod +x /etc/profile.d/oneapi.sh
+
+    # Convenience home
+    mkdir -p /home/user
+
+%runscript
+    exec /bin/bash
+
+%startscript
+    exec /bin/bash -l
+
+%help
+    This image provides the CUDA 10.2 + pulsar/FRB analysis stack:
+    PSRCHIVE, DSPSR, PRESTO, Heimdall, TEMPO/TEMPO2, PSRDADA, etc.
+    Launch an interactive shell with:
+        singularity shell image.sif
+    or
+        apptainer shell image.sif

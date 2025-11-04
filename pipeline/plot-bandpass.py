@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import argparse
 import os
 import your
@@ -12,7 +14,7 @@ def get_args():
     # --- Parser ---
     parser = argparse.ArgumentParser(description='Dynamic Spectra Plotter for LOFTS data.')
     parser.add_argument('-f', '--fil', type=str, help='Path of the filterbank file.', required = True)
-    parser.add_argument('-s', '--station', type=str, help='Station where observation was taken.', required = True)
+    parser.add_argument('-s', '--station', type=str, help='Station where observation was taken.', required = False, default='UNKNOWN')
     return parser.parse_args()
 
 def obs_slice(hdr, len):

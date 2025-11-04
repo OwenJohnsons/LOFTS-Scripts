@@ -22,7 +22,7 @@ log_name=$(echo $path | awk -F'/' '{print $NF}')
 log_file="/datax2/projects/LOFTS/data/LOFTS/logs/filgen/${log_name}_${time}.out"
 error_file="/datax2/projects/LOFTS/data/LOFTS/logs/filgen/${log_name}_${time}.err"
 
-folders=$(find $path -type d \( -name "*scan_LOFTS*" -o -name "*scan_B*" \))
+folders=$(find $path -type d \( -name "*scan_*" -o -name "*scan_B*" \))
 date=$(echo $path | awk -F'/' '{print $(NF)}' | sed 's/^.*sid\([0-9]\{8\}\)T.*/\1/' | sed 's/\([0-9]\{4\}\)\([0-9]\{2\}\)\([0-9]\{2\}\)/\1-\2-\3/')
 
 echo "Number of folders found : $(echo $folders | wc -w)"
@@ -85,5 +85,4 @@ for folder in $folders; do
         echo "Cleaning raw files..."
         rm -f $output_dir/${target}*.raw
     fi
-    echo "Science ready data products generated for $target" | sudo wall 
 done
