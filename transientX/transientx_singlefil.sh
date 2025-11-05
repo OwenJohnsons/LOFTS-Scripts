@@ -2,9 +2,6 @@
 
 file_path=$1
 
-# Time script 
-time=$(date +"%H:%M")
-
 # Check if the file exists
 if [ ! -f "$file_path" ]; then 
     echo "File does not exist. Exiting..."
@@ -26,6 +23,13 @@ echo " Target: $target"
 echo " Output directory: $output_dir"
 echo " ======================== "
 
-cd $path
+cd "$output_dir"
+command="transientx_fil -v -o \"${target}\" -t 4 --zapthre 3.0 --fd 1 --overlap 0.1 --ddplan /datax2/projects/LOFTS/LOFTS-Scripts/transientX/ddplan.txt --thre 7 --drop -z kadaneF 8 4 zdot -f \"${file_path}\""
 
-transientx_fil -v -f "${file_path}" -o "${target}_singlepulse/${target}" --dms 0 --ddm 0.5 --ndm 2000 --maxw 0.2 --thre 5 -z [KadaneF fdRFI KadaneT tdRFI] --threKadaneF 2 --threKadaneT 2 --zapthre 2 --fill rand
+# start time measurement
+start_time=$(date +%s)
+singularity exec --bind /datax,/datax2 /datax2/projects/LOFTS/software/dockers/transientx_lofar_v1.sif bash -c "$command"
+
+end_time=$(date +%s)
+elapsed_time=$((end_time - start_time))
+echo " TransientX single pulse search completed in $elapsed_time seconds. "
