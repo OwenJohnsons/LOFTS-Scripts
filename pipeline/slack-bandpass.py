@@ -6,7 +6,7 @@ import sys
 import pathlib
 import os 
 
-SLACK_TOKEN = os.getenv("SLACK_API_TOKEN")
+SLACK_TOKEN = os.environ["SLACK_API_TOKEN"].strip()
 CHANNEL_ID = 'C096N2DQ6R5'
 
 client = WebClient(token=SLACK_TOKEN)
