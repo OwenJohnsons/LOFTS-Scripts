@@ -146,6 +146,12 @@ for folder in $folders; do
         # ---- Find BFS dir ----
         bfs_dir=$(find "$folder" -maxdepth 1 -type d -name "${station_code}_*_bfs" | head -n 1)
 
+        # Clean up any double commas in path
+        if [[ "$bfs_dir" == *",,"* ]]; then
+            mv "$bfs_dir" "${bfs_dir//,,/}"
+            bfs_dir="${bfs_dir//,,/}"
+        fi 
+
         # ---- Locate header ----
         metadata=""
         if [[ -n "$bfs_dir" && -d "$bfs_dir" ]]; then
@@ -161,6 +167,7 @@ for folder in $folders; do
             continue
         fi
         echo "Metadata header: $metadata"
+
 
         # ===== .zst path with [[port]] =====
         if [[ -n "$bfs_dir" && -d "$bfs_dir" ]]; then
@@ -191,7 +198,8 @@ for folder in $folders; do
             fi
         fi
 
-        echo "Scan path: $zst_scan_path"
+       
+        echo -e "Scan path with ports: $zst_scan_path\n" 
 
         # --- Grabbing start time for skip --- 
         zst_start="${zst_scan_path: -27:19}"
