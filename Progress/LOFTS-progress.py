@@ -94,18 +94,18 @@ data = {
 
 df = pd.DataFrame(data)
 df.to_csv('LOFTS-observations-Progress-%s-%s.csv' % (date.today().isoformat(), station), index=False)
+
+# Wrap longitudes
+l_plot = wrap_angle(df['l_deg'])
+b_plot = df['b_deg']
+ra_plot = wrap_angle(df['ra_deg'])
+dec_plot = df['dec_deg']
 print('Number of files:', len(df))
 
 uniqdf = df[df['filename'].str.contains('0000.fil')].reset_index(drop=True)
 print('Number of unique observations:', len(uniqdf))
 
 sky_cov = len(uniqdf) * np.pi * 2.59**2   # deg^2
-
-# Wrap longitudes
-l_plot = wrap_angle(uniqdf['l_deg'])
-b_plot = uniqdf['b_deg']
-ra_plot = wrap_angle(uniqdf['ra_deg'])
-dec_plot = uniqdf['dec_deg']
 
 if not args.plot:
     exit()
