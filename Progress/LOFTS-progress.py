@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from glob import glob
 import numpy as np
 from astropy.coordinates import SkyCoord
@@ -95,6 +96,7 @@ data = {
 
 df = pd.DataFrame(data)
 df.to_csv('LOFTS-observations-Progress-%s-%s.csv' % (date.today().isoformat(), station), index=False)
+print('.csv written to LOFTS-observations-Progress-%s-%s.csv' % (date.today().isoformat(), station))
 
 # Wrap longitudes
 l_plot = wrap_angle(df['l_deg'])
