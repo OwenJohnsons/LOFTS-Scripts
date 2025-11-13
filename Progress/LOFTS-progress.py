@@ -42,7 +42,7 @@ npols = []
 for fil in filterbanks:
     hdr = your.Your(fil).your_header
 
-    source_name.append(hdr.source_name)
+    source_name.append(hdr.filename.split('/')[-1].split('.')[0])
     filename.append(hdr.filename)
     
     nchan = hdr.native_nchans
@@ -89,7 +89,8 @@ data = {
     'fres_khz': f_res,
     'tsamp': tsamp_arr,
     'tobs_min': tobs,
-    'npol': npols
+    'npol': npols,
+    'station': [station]*len(filename)
 }
 
 df = pd.DataFrame(data)

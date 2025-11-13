@@ -43,6 +43,11 @@ def main():
     pulsar_ra, pulsar_dec = pulsar_tbl['RAJD'].values, pulsar_tbl['DECJD'].values
     pulsar_coords = SkyCoord(ra=pulsar_ra*u.deg, dec=pulsar_dec*u.deg, frame='icrs') 
     
+    # make df of pulsars in beam
+    df = pd.DataFrame(columns=['Obs', 'PSR', 'P0', 'DM', 'Sep'])
+    
+    paths = []; psr_names = []; p0s = []; dms = []; seps = []
+        
     for i, obs_coord in enumerate(obs_coords): 
         separations = obs_coord.separation(pulsar_coords)
         in_beam = separations < beam_radius
@@ -54,7 +59,11 @@ def main():
             for _, row in matched_pulsars.iterrows():
                 sep = obs_coord.separation(SkyCoord(ra=row['RAJD']*u.deg, dec=row['DECJD']*u.deg))
                 print(f" {row['NAME']}, P0: {row['P0']} s, DM: {row['DM']} pc/cm^3, Sep: {sep.to(u.deg).value:.2f} deg")
+                paths.append(fnames[i]); psr_names.append(row['NAME']); p0s.append(row['P0']); dms.append(row['DM']); seps.append(sep.to(u.deg).value)
             print("\n")
+            
+    df['Obs'] = paths; df['PSR'] = psr_names; df['P0'] = p0s; df['DM'] = dms; df['Sep'] = seps
+    df.to_csv(f"{args.input.split('.')[0]}_PSR_beam.csv", index=False)
             
 if __name__ == "__main__":
     main()   
