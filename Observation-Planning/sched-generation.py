@@ -99,15 +99,23 @@ def zenith_ra_dec_formatted(latitude, longitude, start_time_utc, interval_minute
 def main(): 
     parser = argparse.ArgumentParser(description='Generate LOFTS scheduling files')
     parser.add_argument('-date', type=str, help='Start date of the observation in the format YYYY-MM-DD HH:MM:SS', required=False, default=Time.now().iso)
-    parser.add_argument('-start_lofts', type=int, help='Starting number for LOFTS targets', required=False, default=1)
+    parser.add_argument('-n', type=int, help='Starting number for LOFTS targets', required=False, default=1)
 
     args = parser.parse_args()
 
-    latitude =  57.39885  # Latitude of SE607
-    longitude = 11.93029  # Longitude of the SE607
-    start_time_utc = args.date()  # UTC start time of the observation
+    latitude_se =  57.39885  # Latitude of SE607
+    longitude_se = 11.93029  # Longitude of the SE607
+    latitude_irl =  53.349805  # Latitude of Ireland
+    longitude_irl = -7  # Longitude of Ireland
+    
+    half_latitude = (latitude_se + latitude_irl) / 2
+    half_longitude = (longitude_se + longitude_irl) / 2
 
-    zenith_ra_dec_formatted(latitude, longitude, start_time_utc, start_lofts_number=args.start_lofts)
+    print(f"Half Latitude: {half_latitude}, Half Longitude: {half_longitude}")
+
+    start_time_utc = args.date  # UTC start time of the observation
+
+    zenith_ra_dec_formatted(half_latitude, half_longitude, start_time_utc, start_lofts_number=args.n)
 
 
 if __name__ == "__main__":
