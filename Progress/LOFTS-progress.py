@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from glob import glob
 import numpy as np
 from astropy.coordinates import SkyCoord
