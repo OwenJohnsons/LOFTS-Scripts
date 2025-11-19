@@ -9,13 +9,13 @@ import matplotlib.pyplot as plt
 import matplotlib.transforms as mtransforms
 import matplotlib.image as mpimg
 from datetime import date
-import smplotlib
 import argparse
 
 def get_args():
     parser = argparse.ArgumentParser(description="LOFTS Progress")
     parser.add_argument('-s', '--station', type=str, required=True, help='LOFAR station (IE or SE)')
     parser.add_argument('-p', '--plot', action='store_true', help='Generate plots')
+    parser.add_argument('-pub', '--publication', action='store_true', help='Publication quality plots')
     
 
     return parser.parse_args()
@@ -28,6 +28,12 @@ args = get_args()
 station = args.station # 'IE' or 'SE'
 if station not in ['IE', 'SE']:
     raise ValueError("Station must be 'IE' or 'SE'")
+
+if args.publication:
+    import scienceplots
+    plt.style.use(['science', 'no-latex'])
+else:
+    import smplotlib
 
 filterbanks = glob('/datax2/projects/LOFTS/*/*/LOFTS*.fil')
 logo_img = mpimg.imread('./breakthrough-listen.png')
@@ -121,7 +127,7 @@ ax.grid(True)
 
 ax.plot(np.radians([-180, 180]), np.radians([5, 5]), color='black', linestyle='--', linewidth=0.5, label="Galactic Plane")
 ax.plot(np.radians([-180, 180]), np.radians([-5, -5]), color='black', linestyle='--', linewidth=0.5)
-ax.scatter(np.radians(l_plot), np.radians(b_plot), s=1)
+ax.scatter(np.radians(l_plot), np.radians(b_plot), s=1, color='black')
 
 ax.tick_params(labelsize=8)
 for label in ax.get_xticklabels():
@@ -161,7 +167,7 @@ ax = axes[0]
 ax.grid(True)
 ax.plot(np.radians([-180, 180]), np.radians([5, 5]), color='black', linestyle='--', linewidth=0.5, label="Galactic Plane")
 ax.plot(np.radians([-180, 180]), np.radians([-5, -5]), color='black', linestyle='--', linewidth=0.5)
-ax.scatter(np.radians(l_plot), np.radians(b_plot), s=1)
+ax.scatter(np.radians(l_plot), np.radians(b_plot), s=1, color='black')
 ax.tick_params(labelsize=8)
 for label in ax.get_xticklabels():
     label.set_transform(label.get_transform() + mtransforms.ScaledTranslation(0, 5 / 72, fig.dpi_scale_trans))
@@ -172,23 +178,25 @@ ax.set_ylabel("Galactic Latitude $(b)$ [deg]", fontsize=9)
 # Equatorial
 ax = axes[1]
 ax.grid(True)
-ax.scatter(np.radians(ra_plot), np.radians(dec_plot), s=1)
+ax.scatter(np.radians(ra_plot), np.radians(dec_plot), s=1, color='black')
 ax.tick_params(labelsize=8)
 ax.legend(loc='upper right', fontsize=7)
 ax.set_xlabel("Right Ascension [deg]", fontsize=9, labelpad=10)
 ax.set_ylabel("Declination [deg]", fontsize=9)
 
 today = date.today().isoformat()
-fig.text(0.72, 0.6, "LOFTS Observing Progress", fontsize=10)
-fig.text(0.72, 0.57, f"Last Updated: {today}", fontsize=8)
-fig.text(0.72, 0.55, f"Total Unique Observations: {len(uniqdf)}", fontsize=8)
-fig.text(0.72, 0.53, f"Total Data Volume: {np.sum(df['size_gb']):.1f} GB", fontsize=8)
-fig.text(0.72, 0.51, f"Total Observing Time: {np.sum(uniqdf['tobs_min'])/60:.1f} hours", fontsize=8)
-fig.text(0.72, 0.49, f"Total Sky Coverage: {sky_cov:.1f} deg$^2$", fontsize=8)
 
-logo_ax = fig.add_axes([0.72, 0.88, 0.15, 0.15]) 
-logo_ax.imshow(logo_img[::-1, :,], )
-logo_ax.axis("off")
+if not args.publication:
+    fig.text(0.72, 0.6, "LOFTS Observing Progress", fontsize=10)
+    fig.text(0.72, 0.57, f"Last Updated: {today}", fontsize=8)
+    fig.text(0.72, 0.55, f"Total Unique Observations: {len(uniqdf)}", fontsize=8)
+    fig.text(0.72, 0.53, f"Total Data Volume: {np.sum(df['size_gb']):.1f} GB", fontsize=8)
+    fig.text(0.72, 0.51, f"Total Observing Time: {np.sum(uniqdf['tobs_min'])/60:.1f} hours", fontsize=8)
+    fig.text(0.72, 0.49, f"Total Sky Coverage: {sky_cov:.1f} deg$^2$", fontsize=8)
+
+    logo_ax = fig.add_axes([0.72, 0.88, 0.15, 0.15]) 
+    logo_ax.imshow(logo_img[::-1, :,], )
+    logo_ax.axis("off")
 
 plt.tight_layout()
 plt.savefig("../plots/combined-aitoff.png", bbox_inches='tight')
