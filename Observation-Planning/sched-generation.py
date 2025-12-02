@@ -1,6 +1,7 @@
 import os
 from astropy.time import Time, TimeDelta
 from astropy.coordinates import EarthLocation
+from astropy.coordinates import SkyCoord
 import astropy.units as u
 import pandas as pd
 import argparse
@@ -53,8 +54,45 @@ def zenith_ra_dec_formatted(latitude, longitude, start_time_utc, interval_minute
             # Get the RA in radians
             ra_in_radians = current_time.sidereal_time('mean', longitude).to(u.rad).value
             # Latitude (Dec) in radians
-            dec_in_radians = latitude * (u.deg).to(u.rad)
+            dec_in_radians = (latitude * u.deg).to(u.rad)
+            
+                # check dataframe if previous observations exist within 2.59 degrees 
+            try: 
+                master_obs_df = pd.read_csv("../Progress/master-csv/LOFTS-total-progress.csv")
 
+                # Read RA/DEC in degrees from CSV
+                ra_deg_obs = master_obs_df['ra_deg'].values; dec_deg_obs = master_obs_df['dec_deg'].values
+
+                # Build SkyCoord in degrees
+                prior_obs = SkyCoord(ra=ra_deg_obs * u.deg,
+                                    dec=dec_deg_obs * u.deg,
+                                    frame='icrs')
+
+                current_coord = SkyCoord(ra=ra_in_radians * u.rad,
+                                        dec=dec_in_radians,
+                                        frame='icrs')
+
+                while True:
+                    separations = prior_obs.separation(current_coord)
+                    if any(separations.deg <= 2.59):
+                        fwhm = 2.59  # degrees
+                        dec_in_radians -= (fwhm * u.deg).to(u.rad)
+                        
+                        current_coord = SkyCoord(ra=ra_in_radians * u.rad,
+                                                dec=dec_in_radians,
+                                                frame='icrs')
+                        
+                        print(f"Seperation of closest prior obs: {separations.min().deg:.2f} degrees.")
+                     
+                    else:
+                        dec_in_radians = dec_in_radians.value  # Convert back to float
+                        print(f"New Seperation of closest prior obs: {separations.min().deg:.2f} degrees.")
+                        print(f"Adjusted DEC to {dec_in_radians:.2f} to avoid overlap for {lofts_name}.\n")
+                        break
+
+            except FileNotFoundError:
+                print("Master observation CSV not found. Skipping overlap check.")
+            
             results.append({
                 'Name': lofts_name,
                 'Time': f"{current_time.datetime.strftime('%H:%M')} - {obs_end_time.datetime.strftime('%H:%M')}",
